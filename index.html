@@ -741,9 +741,45 @@ async function exportPNG() {
     clone.setAttribute('width', w);
     clone.setAttribute('height', h);
     clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+
+    // Inline computed styles on every element so the exported SVG is self-contained
+    var allEls = clone.querySelectorAll('*');
+    var srcEls = svg.querySelectorAll('*');
+    for (var i = 0; i < allEls.length && i < srcEls.length; i++) {
+        var cs = window.getComputedStyle(srcEls[i]);
+        var important = ['fill','stroke','stroke-width','font-family','font-size','font-weight',
+            'font-style','text-anchor','dominant-baseline','color','opacity','visibility',
+            'text-decoration','letter-spacing','line-height','transform'];
+        var inl = '';
+        for (var j = 0; j < important.length; j++) {
+            var v = cs.getPropertyValue(important[j]);
+            if (v) inl += important[j] + ':' + v + ';';
+        }
+        allEls[i].setAttribute('style', (allEls[i].getAttribute('style') || '') + ';' + inl);
+    }
+
+    // Remove foreignObject elements (they block canvas rendering)
+    clone.querySelectorAll('foreignObject').forEach(function(fo) {
+        var txt = fo.textContent || '';
+        var parent = fo.parentNode;
+        if (parent && txt.trim()) {
+            var t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            t.setAttribute('x', fo.getAttribute('x') || '0');
+            t.setAttribute('y', fo.getAttribute('y') || '0');
+            t.setAttribute('style', 'font-size:14px;fill:currentColor;');
+            t.textContent = txt.trim();
+            parent.replaceChild(t, fo);
+        } else if (parent) {
+            parent.removeChild(fo);
+        }
+    });
+
+    // Remove embedded <style> tags (styles already inlined above)
+    clone.querySelectorAll('style').forEach(function(s) { s.remove(); });
+
     var svgStr = new XMLSerializer().serializeToString(clone);
-    var svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
-    var url = URL.createObjectURL(svgBlob);
+    var dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
     var R = 2;
     var canvas = document.createElement('canvas');
     canvas.width = w * R;
@@ -757,11 +793,10 @@ async function exportPNG() {
                 ctx.fillStyle = '#eff1f5';
                 ctx.fillRect(0, 0, w, h);
                 ctx.drawImage(img, 0, 0, w, h);
-                URL.revokeObjectURL(url);
                 resolve();
             };
-            img.onerror = function() { URL.revokeObjectURL(url); reject(new Error('img load failed')); };
-            img.src = url;
+            img.onerror = function() { reject(new Error('img load failed')); };
+            img.src = dataUrl;
         });
         canvas.toBlob(function(pb) {
             dl(pb, 'diagram.png');
