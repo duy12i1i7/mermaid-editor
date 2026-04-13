@@ -8,18 +8,18 @@
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --bg:     #1e1e2e;
-            --mantle: #181825;
-            --s0:     #313244;
-            --s1:     #45475a;
-            --s2:     #585b70;
-            --ov0:    #6c7086;
-            --text:   #cdd6f4;
-            --sub0:   #a6adc8;
-            --accent: #cba6f7;
-            --green:  #a6e3a1;
-            --red:    #f38ba8;
-            --peach:  #fab387;
+            --bg:     #eff1f5;
+            --mantle: #e6e9ef;
+            --s0:     #ccd0da;
+            --s1:     #bcc0cc;
+            --s2:     #acb0be;
+            --ov0:    #9ca0b0;
+            --text:   #4c4f69;
+            --sub0:   #6c6f85;
+            --accent: #8839ef;
+            --green:  #40a02b;
+            --red:    #d20f39;
+            --peach:  #fe640b;
         }
 
         body {
@@ -95,7 +95,7 @@
             border: 1px solid var(--s1);
             border-radius: 9px;
             padding: 5px;
-            box-shadow: 0 10px 32px rgba(0,0,0,.55);
+            box-shadow: 0 10px 32px rgba(0,0,0,.15);
             flex-direction: column;
             gap: 1px;
             z-index: 500;
@@ -217,7 +217,7 @@
             caret-color: var(--accent);
         }
 
-        textarea::selection { background: rgba(203,166,247,.22); }
+        textarea::selection { background: rgba(136,57,239,.18); }
         textarea::placeholder { color: var(--s2); }
 
         .resizer {
@@ -288,7 +288,7 @@
             border-radius: 10px;
             padding: 3px 4px;
             gap: 1px;
-            box-shadow: 0 4px 18px rgba(0,0,0,.45);
+            box-shadow: 0 4px 18px rgba(0,0,0,.12);
             z-index: 100;
             user-select: none;
         }
@@ -480,7 +480,7 @@
 
 <script type="module">
 import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
+mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
 
 var editor    = document.getElementById('editor');
 var vp        = document.getElementById('vp');
@@ -705,7 +705,7 @@ async function exportPNG() {
             var img = new Image();
             img.onload = function() {
                 ctx.scale(R, R);
-                ctx.fillStyle = '#1e1e2e';
+                ctx.fillStyle = '#eff1f5';
                 ctx.fillRect(0, 0, w, h);
                 ctx.drawImage(img, 0, 0, w, h);
                 URL.revokeObjectURL(url);
