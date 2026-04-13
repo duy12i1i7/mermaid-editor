@@ -347,6 +347,29 @@
             text-transform: uppercase;
             letter-spacing: .7px;
             margin-bottom: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .err-copy {
+            font-family: system-ui, sans-serif;
+            font-size: 11px;
+            font-weight: 600;
+            background: transparent;
+            border: 1px solid var(--red);
+            color: var(--red);
+            padding: 2px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background .12s, color .12s;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+
+        .err-copy:hover {
+            background: var(--red);
+            color: #fff;
         }
 
         .preview-panel:fullscreen { background: var(--bg); }
@@ -472,7 +495,10 @@
         </div>
 
         <div class="error-panel" id="errPanel">
-            <div class="err-title">&#x26a0; Mermaid Syntax Error</div>
+            <div class="err-title">
+                <span>&#x26a0; Mermaid Syntax Error</span>
+                <button class="err-copy" id="errCopy">Copy</button>
+            </div>
             <div id="errTxt"></div>
         </div>
     </div>
@@ -737,6 +763,16 @@ document.querySelectorAll('.menu').forEach(function(menu) {
     });
 });
 document.addEventListener('click', closeMenus);
+
+document.getElementById('errCopy').addEventListener('click', async function() {
+    var txt = document.getElementById('errTxt').textContent;
+    try {
+        await navigator.clipboard.writeText(txt);
+        this.textContent = 'Copied!';
+        var btn = this;
+        setTimeout(function() { btn.textContent = 'Copy'; }, 1500);
+    } catch (ex) {}
+});
 
 document.getElementById('mCopySVG').addEventListener('click', async function() {
     closeMenus();
