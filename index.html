@@ -736,9 +736,13 @@ async function exportPNG() {
     if (!code) { setStatus('No diagram to export', 'err'); return; }
     setStatus('Creating PNG...', 'busy');
     try {
-        // Re-render with strict security (no foreignObject) for clean canvas export
+        // Switch to strict mode (no foreignObject) for clean canvas rendering
+        mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'strict' });
         var exportId = 'mexp' + (++rId);
-        var result = await mermaid.render(exportId, code, { securityLevel: 'strict' });
+        var result = await mermaid.render(exportId, code);
+        // Restore loose mode for preview
+        mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
+
         var tmp = document.createElement('div');
         tmp.innerHTML = result.svg;
         var svg = tmp.querySelector('svg');
@@ -779,6 +783,8 @@ async function exportPNG() {
         var expEl = document.getElementById(exportId);
         if (expEl) expEl.remove();
     } catch (ex) {
+        // Restore loose mode even on error
+        mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
         setStatus('Cannot create PNG', 'err');
     }
 }
