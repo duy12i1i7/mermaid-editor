@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mermaid Editor</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg:     #1e1e2e;
+            --mantle: #181825;
+            --s0:     #313244;
+            --s1:     #45475a;
+            --s2:     #585b70;
+            --ov0:    #6c7086;
+            --text:   #cdd6f4;
+            --sub0:   #a6adc8;
+            --accent: #cba6f7;
+            --green:  #a6e3a1;
+            --red:    #f38ba8;
+            --peach:  #fab387;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+            font-size: 13px;
+        }
+
+        /* ── MENU BAR ────────────────────────────────── */
+        .menubar {
+            display: flex;
+            align-items: center;
+            background: var(--mantle);
+            border-bottom: 1px solid var(--s0);
+            padding: 0 8px;
+            height: 38px;
+            flex-shrink: 0;
+            user-select: none;
+            gap: 2px;
+            z-index: 200;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 0 14px 0 6px;
+            margin-right: 6px;
+            border-right: 1px solid var(--s0);
+            height: 100%;
+            color: var(--accent);
+            font-size: 14px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .menu { position: relative; }
+
+        .menu-btn {
+            display: flex;
+            align-items: center;
+            padding: 5px 11px;
+            border-radius: 5px;
+            cursor: pointer;
+            color: var(--sub0);
+            font-size: 13px;
+            white-space: nowrap;
+            transition: background .12s, color .12s;
+            height: 28px;
+            border: none;
+            background: transparent;
+            font-family: inherit;
+        }
+
+        .menu-btn:hover,
+        .menu.open .menu-btn {
+            background: var(--s0);
+            color: var(--text);
+        }
+
+        .menu-drop {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            min-width: 215px;
+            background: var(--mantle);
+            border: 1px solid var(--s1);
+            border-radius: 9px;
+            padding: 5px;
+            box-shadow: 0 10px 32px rgba(0,0,0,.55);
+            flex-direction: column;
+            gap: 1px;
+            z-index: 500;
+        }
+
+        .menu.open .menu-drop { display: flex; }
+
+        .mi {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 7px 11px;
+            border-radius: 5px;
+            cursor: pointer;
+            color: var(--text);
+            transition: background .1s;
+            font-size: 13px;
+        }
+
+        .mi:hover { background: var(--s0); }
+        .mi.danger { color: var(--red); }
+
+        .mi-icon { width: 18px; text-align: center; flex-shrink: 0; }
+        .mi-label { flex: 1; }
+
+        .mi-key {
+            font-size: 11px;
+            color: var(--ov0);
+            background: var(--s0);
+            padding: 1px 5px;
+            border-radius: 4px;
+            border: 1px solid var(--s1);
+        }
+
+        .m-sep {
+            height: 1px;
+            background: var(--s0);
+            margin: 4px 6px;
+        }
+
+        .menubar-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-right: 4px;
+        }
+
+        .status-chip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            background: var(--s0);
+            font-size: 11.5px;
+            color: var(--ov0);
+            transition: all .2s;
+        }
+
+        .status-chip.ok   { background: rgba(166,227,161,.12); color: var(--green); }
+        .status-chip.err  { background: rgba(243,139,168,.12); color: var(--red);   }
+        .status-chip.busy { background: rgba(250,179,135,.12); color: var(--peach); }
+
+        .s-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            flex-shrink: 0;
+        }
+
+        .status-chip.busy .s-dot { animation: pulse 1s infinite; }
+
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+        /* ── MAIN LAYOUT ─────────────────────────────── */
+        .main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .editor-panel {
+            display: flex;
+            flex-direction: column;
+            width: 45%;
+            min-width: 160px;
+            flex-shrink: 0;
+        }
+
+        .panel-hdr {
+            padding: 6px 13px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--ov0);
+            background: var(--mantle);
+            border-bottom: 1px solid var(--s0);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        textarea {
+            flex: 1;
+            background: var(--bg);
+            color: var(--text);
+            border: none;
+            border-right: 1px solid var(--s0);
+            outline: none;
+            padding: 16px 18px;
+            font-family: 'Menlo', 'Fira Code', 'Cascadia Code', 'Monaco', monospace;
+            font-size: 13px;
+            line-height: 1.72;
+            resize: none;
+            tab-size: 4;
+            caret-color: var(--accent);
+        }
+
+        textarea::selection { background: rgba(203,166,247,.22); }
+        textarea::placeholder { color: var(--s2); }
+
+        .resizer {
+            width: 4px;
+            cursor: col-resize;
+            background: var(--s0);
+            flex-shrink: 0;
+            transition: background .15s;
+            z-index: 10;
+        }
+
+        .resizer:hover, .resizer.active { background: var(--accent); }
+
+        /* ── PREVIEW ─────────────────────────────────── */
+        .preview-panel {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+            min-width: 160px;
+            position: relative;
+        }
+
+        .preview-viewport {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            cursor: grab;
+            background: var(--bg);
+        }
+
+        .preview-viewport.dragging { cursor: grabbing; }
+
+        .preview-inner {
+            position: absolute;
+            top: 0; left: 0;
+            transform-origin: 0 0;
+            pointer-events: none;
+        }
+
+        .preview-inner svg {
+            display: block;
+            max-width: none !important;
+        }
+
+        .preview-ph {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            color: var(--s2);
+            font-size: 13.5px;
+            pointer-events: none;
+        }
+
+        /* ── ZOOM BAR ────────────────────────────────── */
+        .zoom-bar {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            display: flex;
+            align-items: center;
+            background: var(--mantle);
+            border: 1px solid var(--s1);
+            border-radius: 10px;
+            padding: 3px 4px;
+            gap: 1px;
+            box-shadow: 0 4px 18px rgba(0,0,0,.45);
+            z-index: 100;
+            user-select: none;
+        }
+
+        .zb {
+            width: 30px; height: 30px;
+            border-radius: 6px;
+            border: none;
+            background: transparent;
+            color: var(--sub0);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            transition: background .1s, color .1s;
+        }
+
+        .zb:hover  { background: var(--s0); color: var(--text); }
+        .zb:active { background: var(--s1); }
+
+        .zb-pct {
+            min-width: 50px;
+            text-align: center;
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--sub0);
+            cursor: default;
+            padding: 0 4px;
+        }
+
+        .zb-sep { width: 1px; height: 18px; background: var(--s1); margin: 0 3px; }
+
+        /* ── ERROR PANEL ─────────────────────────────── */
+        .error-panel {
+            padding: 11px 16px;
+            background: rgba(243,139,168,.07);
+            border-top: 1.5px solid var(--red);
+            color: var(--red);
+            font-family: 'Menlo', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 150px;
+            overflow: auto;
+            display: none;
+            flex-shrink: 0;
+            line-height: 1.65;
+        }
+
+        .error-panel.visible { display: block; }
+
+        .err-title {
+            font-family: system-ui, sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .7px;
+            margin-bottom: 7px;
+        }
+
+        .preview-panel:fullscreen { background: var(--bg); }
+        .preview-panel:fullscreen .zoom-bar { bottom: 22px; right: 22px; }
+    </style>
+</head>
+<body>
+
+<!-- MENU BAR -->
+<nav class="menubar">
+    <div class="brand">&#x1f9dc; Mermaid Editor</div>
+
+    <div class="menu" data-menu="file">
+        <button class="menu-btn">T&#x1ec7;p</button>
+        <div class="menu-drop">
+            <div class="mi" id="mCopySVG">
+                <span class="mi-icon">&#x1f4cb;</span>
+                <span class="mi-label">Copy SVG</span>
+                <span class="mi-key">&#x2318;C</span>
+            </div>
+            <div class="m-sep"></div>
+            <div class="mi" id="mSaveSVG">
+                <span class="mi-icon">&#x1f4c4;</span>
+                <span class="mi-label">T&#x1ea3;i v&#x1ec1; SVG</span>
+                <span class="mi-key">&#x2318;S</span>
+            </div>
+            <div class="mi" id="mSavePNG">
+                <span class="mi-icon">&#x1f5bc;&#xfe0f;</span>
+                <span class="mi-label">T&#x1ea3;i v&#x1ec1; PNG</span>
+                <span class="mi-key">&#x2318;&#x21e7;S</span>
+            </div>
+            <div class="m-sep"></div>
+            <div class="mi danger" id="mClear">
+                <span class="mi-icon">&#x1f5d1;</span>
+                <span class="mi-label">X&#xf3;a n&#x1ed9;i dung</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="menu" data-menu="insert">
+        <button class="menu-btn">Ch&#xe8;n m&#x1eab;u</button>
+        <div class="menu-drop">
+            <div class="mi" data-ex="flowchart"><span class="mi-icon">&#x1f500;</span><span class="mi-label">Flowchart</span></div>
+            <div class="mi" data-ex="sequence"><span class="mi-icon">&#x2194;&#xfe0f;</span><span class="mi-label">Sequence Diagram</span></div>
+            <div class="mi" data-ex="class"><span class="mi-icon">&#x1f4e6;</span><span class="mi-label">Class Diagram</span></div>
+            <div class="mi" data-ex="er"><span class="mi-icon">&#x1f5c3;&#xfe0f;</span><span class="mi-label">ER Diagram</span></div>
+            <div class="mi" data-ex="gantt"><span class="mi-icon">&#x1f4c5;</span><span class="mi-label">Gantt Chart</span></div>
+            <div class="mi" data-ex="pie"><span class="mi-icon">&#x1f967;</span><span class="mi-label">Pie Chart</span></div>
+            <div class="mi" data-ex="state"><span class="mi-icon">&#x1f504;</span><span class="mi-label">State Diagram</span></div>
+            <div class="mi" data-ex="mindmap"><span class="mi-icon">&#x1f9e0;</span><span class="mi-label">Mind Map</span></div>
+        </div>
+    </div>
+
+    <div class="menu" data-menu="view">
+        <button class="menu-btn">Xem</button>
+        <div class="menu-drop">
+            <div class="mi" id="mZoomIn">
+                <span class="mi-icon">&#x1f50d;</span>
+                <span class="mi-label">Ph&#xf3;ng to</span>
+                <span class="mi-key">Ctrl +</span>
+            </div>
+            <div class="mi" id="mZoomOut">
+                <span class="mi-icon">&#x1f50e;</span>
+                <span class="mi-label">Thu nh&#x1ecf;</span>
+                <span class="mi-key">Ctrl &#x2212;</span>
+            </div>
+            <div class="mi" id="mZoomFit">
+                <span class="mi-icon">&#x2299;</span>
+                <span class="mi-label">V&#x1eeb;a v&#xf9;ng xem</span>
+                <span class="mi-key">Ctrl 0</span>
+            </div>
+            <div class="m-sep"></div>
+            <div class="mi" id="mFullscreen">
+                <span class="mi-icon">&#x26f6;</span>
+                <span class="mi-label">To&#xe0;n m&#xe0;n h&#xec;nh</span>
+                <span class="mi-key">F11</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="menubar-right">
+        <div class="status-chip" id="chip">
+            <span class="s-dot"></span>
+            <span id="statusTxt">S&#x1eb5;n s&#xe0;ng</span>
+        </div>
+    </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+    <div class="editor-panel" id="editorPanel">
+        <div class="panel-hdr">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM21.41 6.34l-3.75-3.75-2.53 2.54 3.75 3.75 2.53-2.54z"/></svg>
+            CODE
+        </div>
+        <textarea id="editor" spellcheck="false" autocomplete="off" placeholder="Type Mermaid code here..."></textarea>
+    </div>
+
+    <div class="resizer" id="resizer"></div>
+
+    <div class="preview-panel" id="previewPanel">
+        <div class="panel-hdr">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+            PREVIEW
+        </div>
+
+        <div class="preview-viewport" id="vp">
+            <div class="preview-inner" id="pi"></div>
+            <div class="preview-ph" id="ph">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="currentColor" style="opacity:.2"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+                Type Mermaid code to preview
+            </div>
+        </div>
+
+        <div class="zoom-bar">
+            <button class="zb" id="bzOut" title="Zoom out">&#x2212;</button>
+            <span class="zb-pct" id="zPct">100%</span>
+            <button class="zb" id="bzIn" title="Zoom in">+</button>
+            <div class="zb-sep"></div>
+            <button class="zb" id="bzFit" title="Fit to view">&#x2299;</button>
+            <div class="zb-sep"></div>
+            <button class="zb" id="bzFs" title="Fullscreen">&#x26f6;</button>
+        </div>
+
+        <div class="error-panel" id="errPanel">
+            <div class="err-title">&#x26a0; Mermaid Syntax Error</div>
+            <div id="errTxt"></div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
+
+var editor    = document.getElementById('editor');
+var vp        = document.getElementById('vp');
+var pi        = document.getElementById('pi');
+var ph        = document.getElementById('ph');
+var errPanel  = document.getElementById('errPanel');
+var errTxt    = document.getElementById('errTxt');
+var chip      = document.getElementById('chip');
+var statusTxt = document.getElementById('statusTxt');
+var zPct      = document.getElementById('zPct');
+
+function setStatus(txt, cls) {
+    statusTxt.textContent = txt;
+    chip.className = 'status-chip ' + (cls || '');
+}
+
+var EX = {
+    flowchart: 'flowchart TD\n    A([Start]) --> B{Check input}\n    B -->|Valid| C[Process data]\n    B -->|Invalid| D[Show error]\n    C --> E[(Save to DB)]\n    E --> F([End])\n    D --> F',
+    sequence: 'sequenceDiagram\n    participant Client\n    participant API\n    participant DB\n    Client->>+API: POST /login\n    API->>+DB: Check account\n    DB-->>-API: Result\n    alt Success\n        API-->>Client: 200 OK + token\n    else Failure\n        API-->>-Client: 401 Unauthorized\n    end',
+    "class": 'classDiagram\n    class Animal {\n        +String name\n        +int age\n        +makeSound() String\n    }\n    class Dog { +String breed; +fetch() void }\n    class Cat { +bool indoor; +purr() void }\n    Animal <|-- Dog\n    Animal <|-- Cat',
+    er: 'erDiagram\n    USER { int id PK; string name; string email UK }\n    ORDR { int id PK; int user_id FK; date created_at; float total }\n    PRODUCT { int id PK; string name; float price }\n    ORDER_ITEM { int id PK; int order_id FK; int product_id FK; int qty }\n    USER ||--o{ ORDR : places\n    ORDR ||--o{ ORDER_ITEM : contains\n    PRODUCT ||--o{ ORDER_ITEM : appears_in',
+    gantt: 'gantt\n    title Development Plan\n    dateFormat YYYY-MM-DD\n    section Analysis\n        Gather requirements :a1, 2026-04-01, 5d\n        Design              :a2, after a1, 7d\n    section Development\n        Backend             :b1, after a2, 14d\n        Frontend            :b2, after a2, 14d\n    section Testing\n        Unit test           :c1, after b1, 5d\n        UAT                 :c2, after c1, 3d',
+    pie: 'pie showData\n    title Time Distribution\n    "Coding" : 38\n    "Meetings" : 18\n    "Research" : 22\n    "Code Review" : 12\n    "Other" : 10',
+    state: 'stateDiagram-v2\n    [*] --> Idle\n    Idle --> Processing : receive request\n    Processing --> Success : done\n    Processing --> Error : failed\n    Error --> Processing : retry\n    Error --> [*] : max retries\n    Success --> [*]',
+    mindmap: 'mindmap\n  root((Web Project))\n    Frontend\n      React\n      Tailwind CSS\n      TypeScript\n    Backend\n      Node.js\n      Express\n      PostgreSQL\n    DevOps\n      Docker\n      CI-CD\n      AWS'
+};
+
+/* ── Zoom / Pan ──────────────────────────────────────────────── */
+var sc = 1, txv = 0, tyv = 0;
+var MIN_SC = 0.04, MAX_SC = 10, STEP = 1.25;
+
+function applyTf() {
+    pi.style.transform = 'translate(' + txv + 'px,' + tyv + 'px) scale(' + sc + ')';
+    zPct.textContent = Math.round(sc * 100) + '%';
+}
+
+function svgNat(svg) {
+    // First try viewBox which is the most reliable
+    var vb = svg.viewBox && svg.viewBox.baseVal;
+    if (vb && vb.width > 0 && vb.height > 0) return { w: vb.width, h: vb.height };
+    // Then try explicit width/height attributes (skip % values)
+    var wa = svg.getAttribute('width');
+    var ha = svg.getAttribute('height');
+    if (wa && ha && wa.indexOf('%') === -1 && ha.indexOf('%') === -1) {
+        var w = parseFloat(wa), h = parseFloat(ha);
+        if (w > 0 && h > 0) return { w: w, h: h };
+    }
+    // Last resort: use getBBox which measures actual drawn content
+    try {
+        var bbox = svg.getBBox();
+        if (bbox.width > 0 && bbox.height > 0) {
+            return { w: bbox.x + bbox.width, h: bbox.y + bbox.height };
+        }
+    } catch(e) {}
+    return { w: 800, h: 600 };
+}
+
+function fitContent() {
+    var svg = pi.querySelector('svg');
+    if (!svg) { sc = 1; txv = 0; tyv = 0; applyTf(); return; }
+
+    // Reset transform so we can measure
+    sc = 1; txv = 0; tyv = 0;
+    pi.style.transform = 'translate(0px,0px) scale(1)';
+
+    // Read SVG natural size from viewBox or attributes
+    var nat = svgNat(svg);
+
+    // Also read the pixel size mermaid actually rendered at
+    // (mermaid sets width as style or attribute, we use getBoundingClientRect)
+    var rect = svg.getBoundingClientRect();
+    // Use whichever gives us a real positive size
+    var sw = nat.w;
+    var sh = nat.h;
+    // If rect is valid use it as it reflects actual rendered size at scale=1
+    if (rect.width > 1 && rect.height > 1) {
+        sw = rect.width;
+        sh = rect.height;
+    }
+
+    var vw = vp.clientWidth;
+    var vh = vp.clientHeight;
+    if (!sw || !sh) return;
+
+    // Scale to fit viewport with padding, allow scaling UP
+    var pad = 48;
+    sc = Math.min((vw - pad) / sw, (vh - pad) / sh);
+    if (sc > 4) sc = 4;
+
+    // Center
+    txv = (vw - sw * sc) / 2;
+    tyv = (vh - sh * sc) / 2;
+    applyTf();
+}
+
+function zoomBy(factor, cx, cy) {
+    var vr = vp.getBoundingClientRect();
+    var px = (cx !== undefined) ? cx : vr.width / 2;
+    var py = (cy !== undefined) ? cy : vr.height / 2;
+    var oldSc = sc;
+    sc = Math.max(MIN_SC, Math.min(MAX_SC, sc * factor));
+    txv = px - (px - txv) * (sc / oldSc);
+    tyv = py - (py - tyv) * (sc / oldSc);
+    applyTf();
+}
+
+vp.addEventListener('wheel', function(e) {
+    e.preventDefault();
+    var r = vp.getBoundingClientRect();
+    zoomBy(e.deltaY < 0 ? STEP : 1 / STEP, e.clientX - r.left, e.clientY - r.top);
+}, { passive: false });
+
+var panning = false, px0 = 0, py0 = 0, tx0 = 0, ty0 = 0;
+
+vp.addEventListener('mousedown', function(e) {
+    if (e.button !== 0) return;
+    panning = true; px0 = e.clientX; py0 = e.clientY; tx0 = txv; ty0 = tyv;
+    vp.classList.add('dragging');
+    e.preventDefault();
+});
+
+var rDrag = false;
+var resizer = document.getElementById('resizer');
+var editorPanel = document.getElementById('editorPanel');
+
+document.addEventListener('mousemove', function(e) {
+    if (panning) {
+        txv = tx0 + (e.clientX - px0);
+        tyv = ty0 + (e.clientY - py0);
+        applyTf();
+    }
+    if (rDrag) {
+        var r = document.querySelector('.main').getBoundingClientRect();
+        editorPanel.style.width = Math.max(160, Math.min(r.width - 160, e.clientX - r.left)) + 'px';
+    }
+});
+
+document.addEventListener('mouseup', function() {
+    if (panning) { panning = false; vp.classList.remove('dragging'); }
+    if (rDrag) { rDrag = false; resizer.classList.remove('active'); document.body.style.cssText = ''; }
+});
+
+/* ── Render ──────────────────────────────────────────────────── */
+var rId = 0, debTimer = null;
+
+async function render() {
+    var code = editor.value.trim();
+    if (!code) {
+        pi.innerHTML = '';
+        ph.style.display = '';
+        errPanel.classList.remove('visible');
+        setStatus('Ready');
+        return;
+    }
+    setStatus('Rendering...', 'busy');
+    var id = 'mg' + (++rId);
+    try {
+        var result = await mermaid.render(id, code);
+        pi.innerHTML = result.svg;
+        ph.style.display = 'none';
+        errPanel.classList.remove('visible');
+        setStatus('Render OK', 'ok');
+        requestAnimationFrame(fitContent);
+    } catch (err) {
+        var el = document.getElementById(id);
+        if (el) el.remove();
+        pi.innerHTML = '';
+        ph.style.display = '';
+        var msg = ((err && err.message) ? err.message : String(err)).replace(/\n\s+at .+/g, '').trim();
+        errTxt.textContent = msg;
+        errPanel.classList.add('visible');
+        setStatus('Syntax error', 'err');
+    }
+}
+
+editor.addEventListener('input', function() {
+    localStorage.setItem('mermaid-editor-v1', editor.value);
+    clearTimeout(debTimer);
+    setStatus('Editing...', 'busy');
+    debTimer = setTimeout(render, 600);
+});
+
+editor.addEventListener('keydown', function(e) {
+    if (e.key !== 'Tab') return;
+    e.preventDefault();
+    var s = editor.selectionStart;
+    editor.value = editor.value.slice(0, s) + '    ' + editor.value.slice(editor.selectionEnd);
+    editor.selectionStart = editor.selectionEnd = s + 4;
+    editor.dispatchEvent(new Event('input'));
+});
+
+/* ── Export ───────────────────────────────────────────────────── */
+function getSVGEl() { return pi.querySelector('svg'); }
+
+function dl(blob, name) {
+    var u = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = u; a.download = name; a.click();
+    URL.revokeObjectURL(u);
+}
+
+async function exportPNG() {
+    var svg = getSVGEl();
+    if (!svg) { setStatus('No diagram to export', 'err'); return; }
+    setStatus('Creating PNG...', 'busy');
+    var nat = svgNat(svg);
+    var w = nat.w || 800, h = nat.h || 600;
+    var clone = svg.cloneNode(true);
+    clone.setAttribute('width', w);
+    clone.setAttribute('height', h);
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    var svgStr = new XMLSerializer().serializeToString(clone);
+    var svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+    var url = URL.createObjectURL(svgBlob);
+    var R = 2;
+    var canvas = document.createElement('canvas');
+    canvas.width = w * R;
+    canvas.height = h * R;
+    var ctx = canvas.getContext('2d');
+    try {
+        await new Promise(function(resolve, reject) {
+            var img = new Image();
+            img.onload = function() {
+                ctx.scale(R, R);
+                ctx.fillStyle = '#1e1e2e';
+                ctx.fillRect(0, 0, w, h);
+                ctx.drawImage(img, 0, 0, w, h);
+                URL.revokeObjectURL(url);
+                resolve();
+            };
+            img.onerror = function() { URL.revokeObjectURL(url); reject(new Error('img load failed')); };
+            img.src = url;
+        });
+        canvas.toBlob(function(pb) {
+            dl(pb, 'diagram.png');
+            setStatus('Downloaded diagram.png', 'ok');
+        }, 'image/png');
+    } catch (ex) {
+        setStatus('Cannot create PNG', 'err');
+    }
+}
+
+/* ── Menu logic ──────────────────────────────────────────────── */
+function closeMenus() {
+    document.querySelectorAll('.menu.open').forEach(function(m) { m.classList.remove('open'); });
+}
+
+document.querySelectorAll('.menu').forEach(function(menu) {
+    menu.querySelector('.menu-btn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        var was = menu.classList.contains('open');
+        closeMenus();
+        if (!was) menu.classList.add('open');
+    });
+});
+document.addEventListener('click', closeMenus);
+
+document.getElementById('mCopySVG').addEventListener('click', async function() {
+    closeMenus();
+    var sv = getSVGEl();
+    if (!sv) { setStatus('No SVG to copy', 'err'); return; }
+    try {
+        await navigator.clipboard.writeText(new XMLSerializer().serializeToString(sv));
+        setStatus('SVG copied', 'ok');
+    } catch (ex) { setStatus('Cannot copy (permission)', 'err'); }
+});
+
+document.getElementById('mSaveSVG').addEventListener('click', function() {
+    closeMenus();
+    var sv = getSVGEl();
+    if (!sv) { setStatus('No SVG to download', 'err'); return; }
+    dl(new Blob([new XMLSerializer().serializeToString(sv)], { type: 'image/svg+xml' }), 'diagram.svg');
+    setStatus('Downloaded diagram.svg', 'ok');
+});
+
+document.getElementById('mSavePNG').addEventListener('click', function() { closeMenus(); exportPNG(); });
+
+document.getElementById('mClear').addEventListener('click', function() {
+    closeMenus();
+    if (editor.value && !confirm('Clear all editor content?')) return;
+    editor.value = '';
+    localStorage.removeItem('mermaid-editor-v1');
+    editor.dispatchEvent(new Event('input'));
+});
+
+document.querySelectorAll('[data-ex]').forEach(function(el) {
+    el.addEventListener('click', function() {
+        var k = el.dataset.ex;
+        if (EX[k]) {
+            editor.value = EX[k];
+            localStorage.setItem('mermaid-editor-v1', editor.value);
+            clearTimeout(debTimer);
+            render();
+        }
+        closeMenus();
+    });
+});
+
+document.getElementById('mZoomIn').addEventListener('click', function() { closeMenus(); zoomBy(STEP); });
+document.getElementById('mZoomOut').addEventListener('click', function() { closeMenus(); zoomBy(1 / STEP); });
+document.getElementById('mZoomFit').addEventListener('click', function() { closeMenus(); fitContent(); });
+
+/* ── Fullscreen ──────────────────────────────────────────────── */
+var previewPanel = document.getElementById('previewPanel');
+var bzFs = document.getElementById('bzFs');
+
+function toggleFs() {
+    if (!document.fullscreenElement)
+        previewPanel.requestFullscreen().catch(function() {});
+    else
+        document.exitFullscreen().catch(function() {});
+}
+
+bzFs.addEventListener('click', toggleFs);
+document.getElementById('mFullscreen').addEventListener('click', function() { closeMenus(); toggleFs(); });
+
+document.addEventListener('fullscreenchange', function() {
+    bzFs.textContent = document.fullscreenElement ? '\u2715' : '\u26f6';
+    requestAnimationFrame(fitContent);
+});
+
+/* ── Keyboard shortcuts ──────────────────────────────────────── */
+document.addEventListener('keydown', function(e) {
+    if (e.target === editor) return;
+    if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '=')) { e.preventDefault(); zoomBy(STEP); }
+    else if ((e.ctrlKey || e.metaKey) && e.key === '-') { e.preventDefault(); zoomBy(1 / STEP); }
+    else if ((e.ctrlKey || e.metaKey) && e.key === '0') { e.preventDefault(); fitContent(); }
+    else if (e.key === 'F11') { e.preventDefault(); toggleFs(); }
+});
+
+/* ── Resizer ─────────────────────────────────────────────────── */
+resizer.addEventListener('mousedown', function(e) {
+    rDrag = true;
+    resizer.classList.add('active');
+    document.body.style.cssText = 'cursor:col-resize;user-select:none';
+    e.preventDefault();
+});
+
+/* ── Zoom buttons ────────────────────────────────────────────── */
+document.getElementById('bzIn').addEventListener('click', function() { zoomBy(STEP); });
+document.getElementById('bzOut').addEventListener('click', function() { zoomBy(1 / STEP); });
+document.getElementById('bzFit').addEventListener('click', fitContent);
+
+/* ── Init ────────────────────────────────────────────────────── */
+editor.value = localStorage.getItem('mermaid-editor-v1') || EX.flowchart;
+render();
+</script>
+</body>
+</html>
