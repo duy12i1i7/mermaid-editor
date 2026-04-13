@@ -732,60 +732,33 @@ function dl(blob, name) {
 }
 
 async function exportPNG() {
-    var svg = getSVGEl();
-    if (!svg) { setStatus('No diagram to export', 'err'); return; }
+    var code = editor.value.trim();
+    if (!code) { setStatus('No diagram to export', 'err'); return; }
     setStatus('Creating PNG...', 'busy');
-    var nat = svgNat(svg);
-    var w = nat.w || 800, h = nat.h || 600;
-    var clone = svg.cloneNode(true);
-    clone.setAttribute('width', w);
-    clone.setAttribute('height', h);
-    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-    clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
-
-    // Inline computed styles on every element so the exported SVG is self-contained
-    var allEls = clone.querySelectorAll('*');
-    var srcEls = svg.querySelectorAll('*');
-    for (var i = 0; i < allEls.length && i < srcEls.length; i++) {
-        var cs = window.getComputedStyle(srcEls[i]);
-        var important = ['fill','stroke','stroke-width','font-family','font-size','font-weight',
-            'font-style','text-anchor','dominant-baseline','color','opacity','visibility',
-            'text-decoration','letter-spacing','line-height','transform'];
-        var inl = '';
-        for (var j = 0; j < important.length; j++) {
-            var v = cs.getPropertyValue(important[j]);
-            if (v) inl += important[j] + ':' + v + ';';
-        }
-        allEls[i].setAttribute('style', (allEls[i].getAttribute('style') || '') + ';' + inl);
-    }
-
-    // Remove foreignObject elements (they block canvas rendering)
-    clone.querySelectorAll('foreignObject').forEach(function(fo) {
-        var txt = fo.textContent || '';
-        var parent = fo.parentNode;
-        if (parent && txt.trim()) {
-            var t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            t.setAttribute('x', fo.getAttribute('x') || '0');
-            t.setAttribute('y', fo.getAttribute('y') || '0');
-            t.setAttribute('style', 'font-size:14px;fill:currentColor;');
-            t.textContent = txt.trim();
-            parent.replaceChild(t, fo);
-        } else if (parent) {
-            parent.removeChild(fo);
-        }
-    });
-
-    // Remove embedded <style> tags (styles already inlined above)
-    clone.querySelectorAll('style').forEach(function(s) { s.remove(); });
-
-    var svgStr = new XMLSerializer().serializeToString(clone);
-    var dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
-    var R = 2;
-    var canvas = document.createElement('canvas');
-    canvas.width = w * R;
-    canvas.height = h * R;
-    var ctx = canvas.getContext('2d');
     try {
+        // Re-render with strict security (no foreignObject) for clean canvas export
+        var exportId = 'mexp' + (++rId);
+        var result = await mermaid.render(exportId, code, { securityLevel: 'strict' });
+        var tmp = document.createElement('div');
+        tmp.innerHTML = result.svg;
+        var svg = tmp.querySelector('svg');
+        if (!svg) throw new Error('no svg');
+
+        var nat = svgNat(svg);
+        var w = nat.w || 800, h = nat.h || 600;
+        svg.setAttribute('width', w);
+        svg.setAttribute('height', h);
+        svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        svg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+
+        var svgStr = new XMLSerializer().serializeToString(svg);
+        var dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+        var R = 2;
+        var canvas = document.createElement('canvas');
+        canvas.width = w * R;
+        canvas.height = h * R;
+        var ctx = canvas.getContext('2d');
+
         await new Promise(function(resolve, reject) {
             var img = new Image();
             img.onload = function() {
@@ -802,6 +775,9 @@ async function exportPNG() {
             dl(pb, 'diagram.png');
             setStatus('Downloaded diagram.png', 'ok');
         }, 'image/png');
+        // Clean up temp render element
+        var expEl = document.getElementById(exportId);
+        if (expEl) expEl.remove();
     } catch (ex) {
         setStatus('Cannot create PNG', 'err');
     }
