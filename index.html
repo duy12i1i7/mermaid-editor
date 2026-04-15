@@ -185,7 +185,12 @@
             width: 45%;
             min-width: 160px;
             flex-shrink: 0;
+            transition: width .2s, min-width .2s, opacity .2s;
         }
+
+        .editor-panel.hidden { width: 0; min-width: 0; overflow: hidden; opacity: 0; pointer-events: none; }
+        .editor-panel.hidden + .resizer { display: none; }
+        .preview-panel.hidden { display: none; }
 
         .panel-hdr {
             padding: 6px 13px;
@@ -464,6 +469,17 @@
                 <span class="mi-icon">&#x26f6;</span>
                 <span class="mi-label">To&#xe0;n m&#xe0;n h&#xec;nh</span>
                 <span class="mi-key">F11</span>
+            </div>
+            <div class="m-sep"></div>
+            <div class="mi" id="mToggleCode">
+                <span class="mi-icon">&#x270f;&#xfe0f;</span>
+                <span class="mi-label">&#x1ea8;n/hi&#x1ec7;n Code</span>
+                <span class="mi-key">&#x2318;1</span>
+            </div>
+            <div class="mi" id="mTogglePreview">
+                <span class="mi-icon">&#x1f441;&#xfe0f;</span>
+                <span class="mi-label">&#x1ea8;n/hi&#x1ec7;n Preview</span>
+                <span class="mi-key">&#x2318;2</span>
             </div>
         </div>
     </div>
@@ -873,6 +889,24 @@ function toggleFs() {
 bzFs.addEventListener('click', toggleFs);
 document.getElementById('mFullscreen').addEventListener('click', function() { closeMenus(); toggleFs(); });
 
+function toggleCode() {
+    var ep = document.getElementById('editorPanel');
+    var pp = document.getElementById('previewPanel');
+    if (pp.classList.contains('hidden') && !ep.classList.contains('hidden')) return; // can't hide both
+    ep.classList.toggle('hidden');
+    if (!pp.classList.contains('hidden')) requestAnimationFrame(fitContent);
+}
+function togglePreview() {
+    var ep = document.getElementById('editorPanel');
+    var pp = document.getElementById('previewPanel');
+    if (ep.classList.contains('hidden') && !pp.classList.contains('hidden')) return; // can't hide both
+    pp.classList.toggle('hidden');
+    if (pp.classList.contains('hidden')) return;
+    requestAnimationFrame(fitContent);
+}
+document.getElementById('mToggleCode').addEventListener('click', function() { closeMenus(); toggleCode(); });
+document.getElementById('mTogglePreview').addEventListener('click', function() { closeMenus(); togglePreview(); });
+
 document.addEventListener('fullscreenchange', function() {
     bzFs.textContent = document.fullscreenElement ? '\u2715' : '\u26f6';
     requestAnimationFrame(fitContent);
@@ -885,6 +919,8 @@ document.addEventListener('keydown', function(e) {
     else if ((e.ctrlKey || e.metaKey) && e.key === '-') { e.preventDefault(); zoomBy(1 / STEP); }
     else if ((e.ctrlKey || e.metaKey) && e.key === '0') { e.preventDefault(); fitContent(); }
     else if (e.key === 'F11') { e.preventDefault(); toggleFs(); }
+    else if ((e.ctrlKey || e.metaKey) && e.key === '1') { e.preventDefault(); toggleCode(); }
+    else if ((e.ctrlKey || e.metaKey) && e.key === '2') { e.preventDefault(); togglePreview(); }
 });
 
 /* ── Resizer ─────────────────────────────────────────────────── */
