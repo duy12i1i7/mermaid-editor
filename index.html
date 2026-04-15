@@ -943,13 +943,17 @@ function updatePanelSizes() {
     }
 }
 
+function delayedFit() {
+    setTimeout(fitContent, 220);
+}
+
 function toggleCode() {
     var ep = document.getElementById('editorPanel');
     var pp = document.getElementById('previewPanel');
     if (pp.classList.contains('hidden') && !ep.classList.contains('hidden')) return;
     ep.classList.toggle('hidden');
     updatePanelSizes();
-    if (!pp.classList.contains('hidden')) requestAnimationFrame(fitContent);
+    if (!pp.classList.contains('hidden')) delayedFit();
 }
 function togglePreview() {
     var ep = document.getElementById('editorPanel');
@@ -957,7 +961,7 @@ function togglePreview() {
     if (ep.classList.contains('hidden') && !pp.classList.contains('hidden')) return;
     pp.classList.toggle('hidden');
     updatePanelSizes();
-    if (!pp.classList.contains('hidden')) requestAnimationFrame(fitContent);
+    if (!pp.classList.contains('hidden')) delayedFit();
 }
 document.getElementById('mToggleCode').addEventListener('click', function() { closeMenus(); toggleCode(); });
 document.getElementById('mTogglePreview').addEventListener('click', function() { closeMenus(); togglePreview(); });
