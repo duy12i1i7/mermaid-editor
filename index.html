@@ -188,9 +188,18 @@
             transition: width .2s, min-width .2s, opacity .2s;
         }
 
-        .editor-panel.hidden { width: 0; min-width: 0; overflow: hidden; opacity: 0; pointer-events: none; }
+        .editor-panel.hidden { width: 32px; min-width: 32px; }
+        .editor-panel.hidden textarea { display: none; }
+        .editor-panel.hidden .panel-hdr { writing-mode: vertical-rl; text-orientation: mixed; padding: 10px 6px; justify-content: flex-start; border-bottom: none; border-right: 1px solid var(--s0); height: 100%; }
+        .editor-panel.hidden .panel-hdr svg:first-child { display: none; }
         .editor-panel.hidden + .resizer { display: none; }
-        .preview-panel.hidden { width: 0; min-width: 0; overflow: hidden; opacity: 0; pointer-events: none; flex: 0; }
+        .preview-panel.hidden { width: 32px; min-width: 32px; flex: 0; }
+        .preview-panel.hidden .preview-viewport,
+        .preview-panel.hidden .zoom-bar,
+        .preview-panel.hidden .footer-credit,
+        .preview-panel.hidden .error-panel { display: none; }
+        .preview-panel.hidden .panel-hdr { writing-mode: vertical-rl; text-orientation: mixed; padding: 10px 6px; justify-content: flex-start; border-bottom: none; border-left: 1px solid var(--s0); height: 100%; }
+        .preview-panel.hidden .panel-hdr svg:first-child { display: none; }
 
         .panel-toggle {
             width: 22px; height: 22px;
@@ -919,12 +928,6 @@ function toggleCode() {
     var pp = document.getElementById('previewPanel');
     if (pp.classList.contains('hidden') && !ep.classList.contains('hidden')) return;
     ep.classList.toggle('hidden');
-    // When editor hidden, preview takes full width
-    if (ep.classList.contains('hidden')) {
-        pp.style.flex = '1';
-    } else {
-        pp.style.flex = '';
-    }
     if (!pp.classList.contains('hidden')) requestAnimationFrame(fitContent);
 }
 function togglePreview() {
@@ -932,14 +935,7 @@ function togglePreview() {
     var pp = document.getElementById('previewPanel');
     if (ep.classList.contains('hidden') && !pp.classList.contains('hidden')) return;
     pp.classList.toggle('hidden');
-    // When preview hidden, editor takes full width
-    if (pp.classList.contains('hidden')) {
-        ep.style.width = '100%';
-    } else {
-        ep.style.width = '';
-    }
-    if (pp.classList.contains('hidden')) return;
-    requestAnimationFrame(fitContent);
+    if (!pp.classList.contains('hidden')) requestAnimationFrame(fitContent);
 }
 document.getElementById('mToggleCode').addEventListener('click', function() { closeMenus(); toggleCode(); });
 document.getElementById('mTogglePreview').addEventListener('click', function() { closeMenus(); togglePreview(); });
