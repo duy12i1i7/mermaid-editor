@@ -188,7 +188,7 @@
             transition: width .2s, min-width .2s, opacity .2s;
         }
 
-        .editor-panel.hidden { width: 32px; min-width: 32px; }
+        .editor-panel.hidden { width: 32px; min-width: 32px; flex: 0; }
         .editor-panel.hidden textarea { display: none; }
         .editor-panel.hidden .panel-hdr { writing-mode: vertical-rl; text-orientation: mixed; padding: 10px 6px; justify-content: flex-start; border-bottom: none; border-right: 1px solid var(--s0); height: 100%; }
         .editor-panel.hidden .panel-hdr svg:first-child { display: none; }
@@ -923,11 +923,28 @@ document.getElementById('mFullscreen').addEventListener('click', function() { cl
 var btnToggleCode = document.getElementById('btnToggleCode');
 var btnTogglePreview = document.getElementById('btnTogglePreview');
 
+function updatePanelSizes() {
+    var ep = document.getElementById('editorPanel');
+    var pp = document.getElementById('previewPanel');
+    if (pp.classList.contains('hidden')) {
+        ep.style.width = '';
+        ep.style.flex = '1';
+    } else if (ep.classList.contains('hidden')) {
+        pp.style.flex = '1';
+        ep.style.flex = '';
+    } else {
+        ep.style.flex = '';
+        ep.style.width = '';
+        pp.style.flex = '';
+    }
+}
+
 function toggleCode() {
     var ep = document.getElementById('editorPanel');
     var pp = document.getElementById('previewPanel');
     if (pp.classList.contains('hidden') && !ep.classList.contains('hidden')) return;
     ep.classList.toggle('hidden');
+    updatePanelSizes();
     if (!pp.classList.contains('hidden')) requestAnimationFrame(fitContent);
 }
 function togglePreview() {
@@ -935,6 +952,7 @@ function togglePreview() {
     var pp = document.getElementById('previewPanel');
     if (ep.classList.contains('hidden') && !pp.classList.contains('hidden')) return;
     pp.classList.toggle('hidden');
+    updatePanelSizes();
     if (!pp.classList.contains('hidden')) requestAnimationFrame(fitContent);
 }
 document.getElementById('mToggleCode').addEventListener('click', function() { closeMenus(); toggleCode(); });
