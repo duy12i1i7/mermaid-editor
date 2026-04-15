@@ -642,14 +642,27 @@ function fitContent() {
     var svg = pi.querySelector('svg');
     if (!svg) { sc = 1; txv = 0; tyv = 0; applyTf(); return; }
 
-    // Reset transform so we can measure viewport
+    // Reset transform so we can measure at scale=1
     sc = 1; txv = 0; tyv = 0;
     pi.style.transform = 'translate(0px,0px) scale(1)';
 
-    // Use natural SVG size (viewBox / attributes / getBBox) as the source of truth
+    // Force reflow so measurements reflect reset state
+    void pi.offsetWidth;
+
+    // Get SVG natural size - try viewBox first, then measure rendered size
     var nat = svgNat(svg);
     var sw = nat.w;
     var sh = nat.h;
+
+    // Also check rendered size at scale=1 as fallback
+    var rect = svg.getBoundingClientRect();
+    if (rect.width > 1 && rect.height > 1) {
+        // Use rendered size if it differs significantly (means viewBox wasn't reliable)
+        if (Math.abs(rect.width - sw) > sw * 0.5 || Math.abs(rect.height - sh) > sh * 0.5) {
+            sw = rect.width;
+            sh = rect.height;
+        }
+    }
 
     var vw = vp.clientWidth;
     var vh = vp.clientHeight;
