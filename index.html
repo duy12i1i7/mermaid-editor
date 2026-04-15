@@ -192,6 +192,22 @@
         .editor-panel.hidden + .resizer { display: none; }
         .preview-panel.hidden { display: none; }
 
+        .toggle-btn {
+            width: 28px; height: 28px;
+            border-radius: 5px;
+            border: none;
+            background: transparent;
+            color: var(--sub0);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: background .12s, color .12s;
+        }
+        .toggle-btn:hover { background: var(--s0); color: var(--text); }
+        .toggle-btn.active { background: var(--s0); color: var(--accent); }
+
         .panel-hdr {
             padding: 6px 13px;
             font-size: 10px;
@@ -485,6 +501,12 @@
     </div>
 
     <div class="menubar-right">
+        <button class="toggle-btn active" id="btnToggleCode" title="&#x1ea8;n/hi&#x1ec7;n Code (&#x2318;1)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </button>
+        <button class="toggle-btn active" id="btnTogglePreview" title="&#x1ea8;n/hi&#x1ec7;n Preview (&#x2318;2)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
         <div class="status-chip" id="chip">
             <span class="s-dot"></span>
             <span id="statusTxt">S&#x1eb5;n s&#xe0;ng</span>
@@ -889,23 +911,37 @@ function toggleFs() {
 bzFs.addEventListener('click', toggleFs);
 document.getElementById('mFullscreen').addEventListener('click', function() { closeMenus(); toggleFs(); });
 
+var btnToggleCode = document.getElementById('btnToggleCode');
+var btnTogglePreview = document.getElementById('btnTogglePreview');
+
+function updateToggleBtns() {
+    var ep = document.getElementById('editorPanel');
+    var pp = document.getElementById('previewPanel');
+    btnToggleCode.classList.toggle('active', !ep.classList.contains('hidden'));
+    btnTogglePreview.classList.toggle('active', !pp.classList.contains('hidden'));
+}
+
 function toggleCode() {
     var ep = document.getElementById('editorPanel');
     var pp = document.getElementById('previewPanel');
-    if (pp.classList.contains('hidden') && !ep.classList.contains('hidden')) return; // can't hide both
+    if (pp.classList.contains('hidden') && !ep.classList.contains('hidden')) return;
     ep.classList.toggle('hidden');
+    updateToggleBtns();
     if (!pp.classList.contains('hidden')) requestAnimationFrame(fitContent);
 }
 function togglePreview() {
     var ep = document.getElementById('editorPanel');
     var pp = document.getElementById('previewPanel');
-    if (ep.classList.contains('hidden') && !pp.classList.contains('hidden')) return; // can't hide both
+    if (ep.classList.contains('hidden') && !pp.classList.contains('hidden')) return;
     pp.classList.toggle('hidden');
+    updateToggleBtns();
     if (pp.classList.contains('hidden')) return;
     requestAnimationFrame(fitContent);
 }
 document.getElementById('mToggleCode').addEventListener('click', function() { closeMenus(); toggleCode(); });
 document.getElementById('mTogglePreview').addEventListener('click', function() { closeMenus(); togglePreview(); });
+btnToggleCode.addEventListener('click', toggleCode);
+btnTogglePreview.addEventListener('click', togglePreview);
 
 document.addEventListener('fullscreenchange', function() {
     bzFs.textContent = document.fullscreenElement ? '\u2715' : '\u26f6';
