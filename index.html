@@ -970,7 +970,8 @@ btnTogglePreview.addEventListener('click', toggleCode);
 
 document.addEventListener('fullscreenchange', function() {
     bzFs.textContent = document.fullscreenElement ? '\u2715' : '\u26f6';
-    delayedFit();
+    setTimeout(fitContent, 100);
+    setTimeout(fitContent, 400);
 });
 
 /* ── Keyboard shortcuts ──────────────────────────────────────── */
