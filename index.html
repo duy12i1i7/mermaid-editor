@@ -642,33 +642,24 @@ function fitContent() {
     var svg = pi.querySelector('svg');
     if (!svg) { sc = 1; txv = 0; tyv = 0; applyTf(); return; }
 
-    // Reset transform so we can measure
+    // Reset transform so we can measure viewport
     sc = 1; txv = 0; tyv = 0;
     pi.style.transform = 'translate(0px,0px) scale(1)';
 
-    // Read SVG natural size from viewBox or attributes
+    // Use natural SVG size (viewBox / attributes / getBBox) as the source of truth
     var nat = svgNat(svg);
-
-    // Also read the pixel size mermaid actually rendered at
-    // (mermaid sets width as style or attribute, we use getBoundingClientRect)
-    var rect = svg.getBoundingClientRect();
-    // Use whichever gives us a real positive size
     var sw = nat.w;
     var sh = nat.h;
-    // If rect is valid use it as it reflects actual rendered size at scale=1
-    if (rect.width > 1 && rect.height > 1) {
-        sw = rect.width;
-        sh = rect.height;
-    }
 
     var vw = vp.clientWidth;
     var vh = vp.clientHeight;
-    if (!sw || !sh) return;
+    if (!sw || !sh || !vw || !vh) return;
 
     // Scale to fit viewport with padding, allow scaling UP
     var pad = 48;
     sc = Math.min((vw - pad) / sw, (vh - pad) / sh);
     if (sc > 4) sc = 4;
+    if (sc < MIN_SC) sc = MIN_SC;
 
     // Center
     txv = (vw - sw * sc) / 2;
