@@ -939,8 +939,8 @@ function togglePreview() {
 }
 document.getElementById('mToggleCode').addEventListener('click', function() { closeMenus(); toggleCode(); });
 document.getElementById('mTogglePreview').addEventListener('click', function() { closeMenus(); togglePreview(); });
-btnToggleCode.addEventListener('click', toggleCode);
-btnTogglePreview.addEventListener('click', togglePreview);
+btnToggleCode.addEventListener('click', togglePreview);
+btnTogglePreview.addEventListener('click', toggleCode);
 
 document.addEventListener('fullscreenchange', function() {
     bzFs.textContent = document.fullscreenElement ? '\u2715' : '\u26f6';
